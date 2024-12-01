@@ -1,0 +1,41 @@
+name: DigitalOcean App Deploy
+
+on:
+    push:
+        branches: 
+            - main
+env:
+    REGISTRY: registry.digitalocean.com/nicks-container-registry
+    IMAGE_NAME: deno-test-image
+    TAG: new
+jobs:
+    build_and_push:
+        name: Build, Push, Deploy
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout main
+              uses: actions/checkout@v4
+            - name: Build container image
+              run: docker compose build
+            - name: Docker Login to Digital Ocean Registry
+              uses: docker/login-action@v3.3.0
+              with:
+                registry: ${{ env.REGISTRY }}
+                username: ${{ secrets.DIGITALOCEAN_USERNAME }}
+                password: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+            - name: Push Container image
+              run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@master
+              with:
+                host: ${{ secrets.DIGITALOCEAN_HOST }}
+                username: ${{ secrets.SSH_USERNAME }}
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                  # Login to Digital Ocean Container Registry
+                  docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
+                  # Stop and remove a running image.
+                  docker stop ${{ env.IMAGE_NAME }}
+                  # Run a new container from a new image
+                  docker run -d --rm -it --host=net --name ${{ env.IMAGE_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+              
