@@ -39,5 +39,5 @@ jobs:
                   # Stop and remove a running image.
                   docker stop ${{ env.IMAGE_NAME }}
                   # Run a new container from a new image
-                  docker run -d --rm -it --host=net --name ${{ env.IMAGE_NAME }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+                  docker run --name ${{ env.IMAGE_NAME }} --rm -d --net=host ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
               
